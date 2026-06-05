@@ -1159,40 +1159,46 @@ window.tirarFoto = function(tipo) {
   input.type = 'file';
   input.accept = 'image/*';
   input.capture = 'environment';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+
   input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files && e.target.files[0];
+    if (!file) { document.body.removeChild(input); return; }
+
     showToast('📤 Enviando foto...');
     const base64 = await fileToBase64(file);
+
+    // Marcar imediatamente como capturada (antes mesmo do upload)
+    photosUploaded[tipo] = true;
+    const chave = tipo === 'antes' ? 'photoBefore' : tipo === 'preco' ? 'photoPrice' : 'photoAfter';
+    visitData[chave] = true;
+
     // Mostrar thumb
     adicionarThumb(tipo, base64, false);
-    // Upload Firestore
+    atualizarBotaoFoto(tipo);
+
+    // Upload Firestore em background
     try {
-      const { doc, setDoc, serverTimestamp } = window._fsLib;
+      const { doc, setDoc, updateDoc, serverTimestamp } = window._fsLib;
       const photoId = tipo + '_' + Date.now();
       await setDoc(doc(db, 'visits', visitId, 'photos', photoId), {
         tipo, base64, uploadedAt: serverTimestamp()
       });
-      photosUploaded[tipo] = true;
       marcarThumbUploaded(tipo);
-      atualizarBotaoFoto(tipo);
-      // Atualizar visit
-      const { updateDoc, doc: docFn } = window._fsLib;
       const update = {};
-      if (tipo === 'antes') update.photoBefore = true;
-      if (tipo === 'preco') update.photoPrice = true;
-      if (tipo === 'depois') update.photoAfter = true;
-      await updateDoc(docFn(db, 'visits', visitId), update);
-      visitData['photo' + (tipo === 'antes' ? 'Before' : tipo === 'preco' ? 'Price' : 'After')] = true;
+      update[chave] = true;
+      await updateDoc(doc(db, 'visits', visitId), update);
       showToast('✅ Foto salva!');
     } catch(e) {
       showToast('⚠️ Foto salva localmente');
     }
+
     salvarRascunho();
+    document.body.removeChild(input);
   };
-  document.body.appendChild(input);
+
   input.click();
-  document.body.removeChild(input);
 };
 
 function adicionarThumb(tipo, src, uploaded) {
