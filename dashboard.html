@@ -370,7 +370,7 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-item" onclick="goTab('ia')"><span class="nav-icon">🤖</span> Análise IA</div>
       <div class="nav-item" onclick="goTab('equipe')"><span class="nav-icon">👥</span> Equipe</div>
     </nav>
-    <div class="sidebar-footer"><div class="version">v1.0 — Dashboard</div></div>
+    <div class="sidebar-footer"><div class="version">v1.2 — Dashboard</div></div>
   </div>
 
   <!-- MAIN -->
@@ -608,6 +608,60 @@ const SABORES_PADRAO = ['Tamarindo','Maracujá','Graviola','Cupuaçu','Açaí','
 const DIAS = ['seg','ter','qua','qui','sex','sab','dom'];
 const DIAS_LABEL = {'seg':'Segunda','ter':'Terça','qua':'Quarta','qui':'Quinta','sex':'Sexta','sab':'Sábado','dom':'Domingo'};
 
+
+const REDES_LOJAS_BASE = {
+  'CONDOR': ['Condor Água Verde','Condor Ahú','Condor Bacacheri','Condor Bairro Alto','Condor Batel',
+    'Condor Bigorrilho','Condor Boa Vista','Condor Boqueirão','Condor Cabral','Condor Cajuru',
+    'Condor Campo Comprido','Condor Capão Raso','Condor Cascatinha','Condor CIC','Condor Colombo',
+    'Condor Fazendinha','Condor Hauer','Condor Jardim das Américas','Condor Merces','Condor Novo Mundo',
+    'Condor Orleans','Condor Pinheirinho','Condor Portão','Condor Rebouças','Condor Santa Cândida',
+    'Condor Santa Felicidade','Condor São Braz','Condor São João','Condor Seminário','Condor Sítio Cercado',
+    'Condor Uberaba','Condor Vila Hauer','Condor Xaxim'],
+  'ADORATO': ['Adorato Batel','Adorato Bigorrilho','Adorato Cabral','Adorato Mercês','Adorato Seminário'],
+  'MAX MUFFATO': ['Muffato Almirante Tamandaré','Muffato Araucária','Muffato Campo Largo',
+    'Muffato Colombo','Muffato Fazenda Rio Grande','Muffato Pinhais','Muffato Piraquara',
+    'Muffato Portão','Muffato São José dos Pinhais'],
+  'FESTVAL': ['Festval Água Verde','Festval Batel','Festval Cabral','Festval Champagnat',
+    'Festval Ecoville','Festval Hugo Lange','Festval Mercês','Festval Rebouças'],
+  'CARREFOUR': ['Carrefour Caximba','Carrefour Colombo','Carrefour Hiper Pinhais',
+    'Carrefour Maracanã','Carrefour Portão','Carrefour São José dos Pinhais'],
+  'ASSAÍ': ['Assaí Colombo','Assaí Curitiba Hauer','Assaí Curitiba Norte','Assaí Pinhais'],
+  'SUPERPÃO': ['Superpão Alto da XV','Superpão Bacacheri','Superpão Boqueirão',
+    'Superpão Cajuru','Superpão Cidade Industrial','Superpão Portão'],
+  'FAMÍLIA FARINHA': ['Família Farinha Almirante Tamandaré','Família Farinha Colombo',
+    'Família Farinha Piraquara','Família Farinha São José dos Pinhais'],
+  'COOPER': ['Cooper Araucária','Cooper Campo Largo','Cooper Contenda','Cooper Fazenda Rio Grande'],
+  'VICARI': ['Vicari Centro','Vicari Hauer','Vicari Portão','Vicari Santa Cândida'],
+  'TOZETTO': ['Tozetto Almirante Tamandaré','Tozetto Colombo','Tozetto Piraquara'],
+  'ADEGA BRASIL': ['Adega Brasil Água Verde','Adega Brasil Batel','Adega Brasil Centro'],
+  'ADEGA FANNY': ['Adega Fanny Fanny','Adega Fanny Novo Mundo','Adega Fanny Pinheirinho'],
+  'SUPER VITOR': ['Super Vitor Almirante Tamandaré','Super Vitor Colombo'],
+  'DAL POZZO': ['Dal Pozzo Araucária','Dal Pozzo Campo Largo','Dal Pozzo Colombo'],
+  'SUPERVILLE': ['Superville Curitiba','Superville Pinhais'],
+  'SUPERDIA': ['Superdia Almirante Tamandaré','Superdia Colombo','Superdia Piraquara'],
+  'PALMEIRA': ['Palmeira Centro'],
+};
+
+async function importarLojasBase() {
+  // Verifica se já foram importadas
+  if (localStorage.getItem('maturi_lojas_importadas')) return;
+  const snap = await getDocs(collection(db, 'stores'));
+  if (!snap.empty) { localStorage.setItem('maturi_lojas_importadas','1'); return; }
+
+  showToast('⏳ Importando lojas base...');
+  let count = 0;
+  for (const [rede, lojas] of Object.entries(REDES_LOJAS_BASE)) {
+    for (const nome of lojas) {
+      await addDoc(collection(db, 'stores'), { name: nome, network: rede, address: '', lat: null, lng: null, gpsRadius: 200 });
+      count++;
+    }
+  }
+  localStorage.setItem('maturi_lojas_importadas','1');
+  showToast('✅ ' + count + ' lojas importadas!');
+  await carregarTodasLojas();
+  filtrarLojas();
+}
+
 let db, allVisitas = [], allLojas = [], allPromotores = [], allScheds = [], iaHistory = [];
 let currentSaboresRede = [], editingLojaId = null, editingPromId = null;
 let lightboxPhotos = [], lightboxIdx = 0;
@@ -662,6 +716,7 @@ window.goTab = function(tab) {
 // ============================================================
 async function initDashboard() {
   await Promise.all([carregarTodasVisitas(), carregarTodasLojas(), carregarTodosPromotores(), carregarTodosScheds()]);
+  await importarLojasBase();
   renderVisaoGeral();
   popularFiltroRedes();
 }
