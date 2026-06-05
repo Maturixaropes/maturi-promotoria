@@ -212,7 +212,7 @@ tr:last-child td { border-bottom: none; }
 .compliance-fill.low { background: var(--erro); }
 
 /* LOGIN */
-.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--verde); }
+.login-wrap { min-height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: var(--verde); position: fixed; top: 0; left: 0; z-index: 1000; }
 .login-box { background: var(--branco); border-radius: 20px; padding: 36px 32px; width: 340px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
 .login-logo { text-align: center; margin-bottom: 24px; }
 .login-logo img { width: 180px; filter: invert(18%) sepia(42%) saturate(600%) hue-rotate(100deg) brightness(60%); }
@@ -354,7 +354,7 @@ tr:last-child td { border-bottom: none; }
 </div>
 
 <!-- APP SHELL (hidden until login) -->
-<div id="app-shell" style="display:none;width:100%;display:none">
+<div id="app-shell" style="display:none;width:100%">
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-logo">
@@ -626,6 +626,7 @@ window.doLogin = function() {
     document.getElementById('login-erro').style.display = 'block'; return;
   }
   document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.removeProperty('display');
   document.getElementById('app-shell').style.display = 'flex';
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('pt-BR', {weekday:'long',day:'numeric',month:'long'});
   initDashboard();
@@ -1382,7 +1383,7 @@ Identifique: 1) Lojas críticas sem nenhuma visita 2) Lojas parciais 3) Redes co
     const resp = await chamarIA([{role:'user',content:prompt}]);
     resultado.innerHTML = `
       <div style="display:flex;gap:16px;margin-bottom:16px">
-        <div class="stat-card" style="flex:1;min-width:0"><div class="stat-label">Compliance da semana</div><div class="stat-value" style="color:${pct>=80?'var(--sucesso)':pct>=50?'var(--aviso)':'var(--erro)}">${pct}%</div></div>
+        <div class="stat-card" style="flex:1;min-width:0"><div class="stat-label">Compliance da semana</div><div class="stat-value" style="color:${pct>=80?'var(--sucesso)':pct>=50?'var(--aviso)':'var(--erro)'}>${pct}%</div></div>
         <div class="stat-card" style="flex:1;min-width:0"><div class="stat-label">Visitas realizadas</div><div class="stat-value">${realizados}/${total}</div></div>
         <div class="stat-card" style="flex:1;min-width:0"><div class="stat-label">Lojas com falta</div><div class="stat-value" style="color:var(--erro)">${resumoCronograma.filter(r=>r.diasFaltando.length>0).length}</div></div>
       </div>
