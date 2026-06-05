@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1E3D2F">
+<title>Maturí Promotoria</title>
+<style>
+  :root {
+    --verde: #1E3D2F;
+    --verde-medio: #2A5240;
+    --verde-claro: #3D7A58;
+    --creme: #F0E6C8;
+    --creme-claro: #FAF6ED;
+    --dourado: #C9962A;
+    --dourado-claro: #E8B84B;
+    --branco: #FFFFFF;
+    --cinza: #F5F5F5;
+    --cinza-escuro: #888;
+    --erro: #C0392B;
+    --sucesso: #27AE60;
+    --aviso: #E67E22;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--creme-claro);
+    color: var(--verde);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .app-header {
+    background: var(--verde);
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .app-header .logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--creme);
+    letter-spacing: 1px;
+  }
+  .app-header .logo-sub {
+    font-size: 11px;
+    color: var(--dourado-claro);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .version-badge {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(30,61,47,0.7);
+    color: var(--creme);
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 10px;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  /* TELAS */
+  .screen { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--branco);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(30,61,47,0.08);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--verde-claro);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  /* STEP INDICATOR */
+  .steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 16px 20px 0;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ddd;
+    color: #aaa;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+  .step.active .step-circle { background: var(--dourado); color: var(--branco); }
+  .step.done .step-circle { background: var(--sucesso); color: var(--branco); }
+  .step-label { font-size: 10px; color: #aaa; text-align: center; }
+  .step.active .step-label { color: var(--dourado); font-weight: 600; }
+  .step.done .step-label { color: var(--sucesso); }
+  .step-line { flex: 1; height: 2px; background: #ddd; margin-bottom: 16px; }
+  .step-line.done { background: var(--sucesso); }
+
+  /* INPUTS */
+  .field { margin-bottom: 16px; position: relative; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--verde-claro);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #E0D8C0;
+    border-radius: 10px;
+    font-size: 15px;
+    color: var(--verde);
+    background: var(--branco);
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--dourado);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  /* AUTOCOMPLETE */
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--branco);
+    border: 2px solid var(--dourado);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .autocomplete-list div {
+    padding: 11px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0e8d0;
+    color: var(--verde);
+  }
+  .autocomplete-list div:hover { background: var(--creme); }
+
+  /* BUTTONS */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: var(--verde);
+    color: var(--creme);
+  }
+  .btn-primary:active { background: var(--verde-medio); transform: scale(0.98); }
+  .btn-secondary {
+    background: var(--creme);
+    color: var(--verde);
+    border: 2px solid var(--verde);
+  }
+  .btn-gold {
+    background: var(--dourado);
+    color: var(--branco);
+  }
+  .btn-gold:active { background: #b8851f; transform: scale(0.98); }
+  .btn-danger {
+    background: var(--erro);
+    color: var(--branco);
+  }
+  .btn + .btn { margin-top: 10px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* FOTO */
+  .photo-btn {
+    width: 100%;
+    padding: 18px;
+    border: 2px dashed var(--dourado);
+    border-radius: 12px;
+    background: var(--creme-claro);
+    color: var(--verde);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .photo-btn:active { background: var(--creme); }
+  .photo-btn.done {
+    border-color: var(--sucesso);
+    background: #f0fff4;
+    color: var(--sucesso);
+  }
+  .photo-thumb-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .photo-thumb {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 3px solid #ddd;
+    transition: border-color 0.3s;
+  }
+  .photo-thumb.uploaded { border-color: var(--sucesso); }
+
+  /* GPS STATUS */
+  .gps-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .gps-status.checking { background: #FFF8E1; color: var(--aviso); border: 2px solid var(--aviso); }
+  .gps-status.ok { background: #F0FFF4; color: var(--sucesso); border: 2px solid var(--sucesso); }
+  .gps-status.fail { background: #FFF0F0; color: var(--erro); border: 2px solid var(--erro); }
+  .gps-icon { font-size: 24px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--verde);
+    color: var(--creme);
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: var(--branco);
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--verde);
+    margin-bottom: 10px;
+  }
+  .modal-text {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  /* CHECKLIST SABORES */
+  .flavor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .flavor-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 2px solid #E0D8C0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--verde);
+    background: var(--branco);
+    user-select: none;
+  }
+  .flavor-item.checked {
+    border-color: var(--sucesso);
+    background: #f0fff4;
+    color: var(--sucesso);
+  }
+  .flavor-item .check-icon { font-size: 16px; }
+
+  /* RESUMO */
+  .resumo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0e8d0;
+    font-size: 14px;
+  }
+  .resumo-row:last-child { border-bottom: none; }
+  .resumo-label { color: #888; }
+  .resumo-value { font-weight: 700; color: var(--verde); text-align: right; }
+
+  /* COMPLIANCE BAR */
+  .compliance-bar-wrap { margin-top: 6px; }
+  .compliance-bar {
+    height: 8px;
+    background: #E0D8C0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .compliance-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--sucesso);
+    transition: width 0.6s ease;
+  }
+  .compliance-bar-fill.low { background: var(--erro); }
+  .compliance-bar-fill.mid { background: var(--aviso); }
+
+  /* SCREEN TITLES */
+  .screen-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--verde);
+    margin-bottom: 4px;
+  }
+  .screen-subtitle {
+    font-size: 13px;
+    color: var(--cinza-escuro);
+    margin-bottom: 20px;
+  }
+
+  /* SPINNER */
+  .spinner {
+    width: 24px; height: 24px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: var(--branco);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* OFFLINE BANNER */
+  .offline-banner {
+    background: var(--aviso);
+    color: var(--branco);
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+  }
+  .offline-banner.show { display: block; }
+
+  /* INFO BADGE */
+  .info-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--creme);
+    border: 1px solid var(--dourado);
+    color: var(--verde);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offlineBanner">📵 Sem internet — dados salvos localmente</div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div>
+    <div class="logo-text">MATURÍ</div>
+    <div class="logo-sub">Promotoria</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL CONTINUAR SESSÃO -->
+<div class="modal-overlay hidden" id="modalContinuar">
+  <div class="modal-box">
+    <div class="modal-title">Visita em andamento</div>
+    <div class="modal-text">Você tem uma visita não finalizada. Deseja continuar de onde parou?</div>
+    <button class="btn btn-primary" onclick="continuarVisita()">Continuar visita</button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="cancelarVisitaAnterior()">Iniciar nova visita</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR CANCELAR -->
+<div class="modal-overlay hidden" id="modalCancelar">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Atenção</div>
+    <div class="modal-text">A visita anterior será cancelada e os dados perdidos. Tem certeza?</div>
+    <button class="btn btn-danger" onclick="confirmarCancelamento()">Sim, iniciar nova</button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="fecharModalCancelar()">Voltar</button>
+  </div>
+</div>
+
+<!-- ===================== TELA: CONFIG ===================== -->
+<div class="screen active" id="screen-config">
+  <div style="padding-top:30px">
+    <div class="screen-title">⚙️ Configuração</div>
+    <div class="screen-subtitle">Configure o Firebase para começar</div>
+    <div class="card">
+      <div class="card-title">Firebase Config</div>
+      <div class="field">
+        <label>API Key</label>
+        <input type="text" id="cfg-apiKey" placeholder="AIza...">
+      </div>
+      <div class="field">
+        <label>Project ID</label>
+        <input type="text" id="cfg-projectId" placeholder="maturi-promotoria">
+      </div>
+      <div class="field">
+        <label>App ID</label>
+        <input type="text" id="cfg-appId" placeholder="1:xxx:web:xxx">
+      </div>
+      <div class="field">
+        <label>Messaging Sender ID</label>
+        <input type="text" id="cfg-senderId" placeholder="123456789">
+      </div>
+      <button class="btn btn-primary" onclick="salvarConfig()">Salvar e continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TELA: LOGIN ===================== -->
+<div class="screen" id="screen-login">
+  <div style="padding-top:20px">
+    <div class="screen-title">Olá! 👋</div>
+    <div class="screen-subtitle">Identifique-se para começar a visita</div>
+    <div class="card">
+      <div class="card-title">Seus dados</div>
+      <div class="field" style="position:relative">
+        <label>Seu nome</label>
+        <input type="text" id="login-nome" placeholder="Digite seu nome..." autocomplete="off" oninput="autocompleteNome(this.value)">
+        <div class="autocomplete-list" id="autocomplete-nome" style="display:none"></div>
+      </div>
+      <div class="field">
+        <label>Rede</label>
+        <select id="login-rede" onchange="filtrarLojas()">
+          <option value="">Selecione a rede...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Loja</label>
+        <select id="login-loja">
+          <option value="">Selecione a loja...</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="fazerLogin()">Verificar localização →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TELA: GPS ===================== -->
+<div class="screen" id="screen-gps">
+  <div style="padding-top:20px">
+    <div class="screen-title">📍 Verificação de Local</div>
+    <div class="screen-subtitle">Confirmando que você está na loja</div>
+
+    <div class="gps-status checking" id="gps-status-box">
+      <span class="gps-icon">📡</span>
+      <div>
+        <div id="gps-status-title">Obtendo localização...</div>
+        <div id="gps-status-detail" style="font-size:12px;font-weight:400;margin-top:2px"></div>
+      </div>
+    </div>
+
+    <div class="card" id="gps-info-card" style="display:none">
+      <div class="card-title">Detalhes</div>
+      <div class="resumo-row">
+        <span class="resumo-label">Loja</span>
+        <span class="resumo-value" id="gps-loja-nome"></span>
+      </div>
+      <div class="resumo-row">
+        <span class="resumo-label">Distância</span>
+        <span class="resumo-value" id="gps-distancia"></span>
+      </div>
+      <div class="resumo-row">
+        <span class="resumo-label">Raio permitido</span>
+        <span class="resumo-value" id="gps-raio"></span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-avancar-gps" style="display:none" onclick="irParaEtapa1()">
+      ✅ Iniciar visita
+    </button>
+    <button class="btn btn-secondary" id="btn-tentar-gps" style="display:none" onclick="verificarGPS()">
+      🔄 Tentar novamente
+    </button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="irPara('login')">
+      ← Voltar
+    </button>
+  </div>
+</div>
+
+<!-- ===================== TELA: ETAPA 1 - ANTES ===================== -->
+<div class="screen" id="screen-etapa1">
+  <!-- steps -->
+  <div class="steps" style="padding-top:16px">
+    <div class="step active" id="s1">
+      <div class="step-circle">1</div>
+      <div class="step-label">Antes</div>
+    </div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step" id="s2">
+      <div class="step-circle">2</div>
+      <div class="step-label">Sabores</div>
+    </div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step" id="s3">
+      <div class="step-circle">3</div>
+      <div class="step-label">Depois</div>
+    </div>
+  </div>
+
+  <div style="padding-top:16px">
+    <div class="screen-title">📸 Antes do abastecimento</div>
+    <div class="screen-subtitle">Registre como está a gôndola agora</div>
+
+    <div class="card">
+      <div class="card-title">Foto — Gôndola (antes)</div>
+      <button class="photo-btn" id="btn-foto-antes" onclick="tirarFoto('antes')">
+        <span>📷</span> Fotografar gôndola
+      </button>
+      <div class="photo-thumb-wrap" id="thumbs-antes"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💰 Foto — Preço atual</div>
+      <button class="photo-btn" id="btn-foto-preco" onclick="tirarFoto('preco')">
+        <span>💰</span> Fotografar etiqueta de preço
+      </button>
+      <div class="photo-thumb-wrap" id="thumbs-preco"></div>
+      <div class="field" style="margin-top:14px;margin-bottom:0">
+        <label>Valor do preço (opcional)</label>
+        <input type="text" id="preco-valor" placeholder="Ex: R$ 19,90" oninput="salvarRascunho()">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="irParaEtapa2()">Próximo: conferir sabores →</button>
+  </div>
+</div>
+
+<!-- ===================== TELA: ETAPA 2 - SABORES ===================== -->
+<div class="screen" id="screen-etapa2">
+  <div class="steps" style="padding-top:16px">
+    <div class="step done"><div class="step-circle">✓</div><div class="step-label">Antes</div></div>
+    <div class="step-line done"></div>
+    <div class="step active"><div class="step-circle">2</div><div class="step-label">Sabores</div></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-circle">3</div><div class="step-label">Depois</div></div>
+  </div>
+
+  <div style="padding-top:16px">
+    <div class="screen-title">🍹 Conferência de Sabores</div>
+    <div class="screen-subtitle">Marque os sabores que estão na gôndola</div>
+
+    <div class="card">
+      <div class="card-title">Sabores encontrados</div>
+      <div class="flavor-grid" id="flavor-grid"></div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0e8d0">
+        <div style="font-size:13px;color:#888">Compliance</div>
+        <div style="font-size:22px;font-weight:800;color:var(--verde)" id="compliance-pct">0%</div>
+        <div class="compliance-bar"><div class="compliance-bar-fill" id="compliance-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="irParaEtapa3()">Próximo: foto depois →</button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="irPara('etapa1')">← Voltar</button>
+  </div>
+</div>
+
+<!-- ===================== TELA: ETAPA 3 - DEPOIS ===================== -->
+<div class="screen" id="screen-etapa3">
+  <div class="steps" style="padding-top:16px">
+    <div class="step done"><div class="step-circle">✓</div><div class="step-label">Antes</div></div>
+    <div class="step-line done"></div>
+    <div class="step done"><div class="step-circle">✓</div><div class="step-label">Sabores</div></div>
+    <div class="step-line done"></div>
+    <div class="step active"><div class="step-circle">3</div><div class="step-label">Depois</div></div>
+  </div>
+
+  <div style="padding-top:16px">
+    <div class="screen-title">✅ Depois do abastecimento</div>
+    <div class="screen-subtitle">Registre como ficou a gôndola</div>
+
+    <div class="card">
+      <div class="card-title">Foto — Gôndola (depois)</div>
+      <button class="photo-btn" id="btn-foto-depois" onclick="tirarFoto('depois')">
+        <span>📷</span> Fotografar gôndola abastecida
+      </button>
+      <div class="photo-thumb-wrap" id="thumbs-depois"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Observações</div>
+      <div class="field" style="margin-bottom:0">
+        <textarea id="obs-texto" placeholder="Alguma observação sobre a visita? (opcional)" oninput="salvarRascunho()"></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="irParaConfirmacao()">Ver resumo →</button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="irPara('etapa2')">← Voltar</button>
+  </div>
+</div>
+
+<!-- ===================== TELA: CONFIRMAÇÃO ===================== -->
+<div class="screen" id="screen-confirmacao">
+  <div style="padding-top:20px">
+    <div class="screen-title">📋 Resumo da visita</div>
+    <div class="screen-subtitle">Confira os dados antes de finalizar</div>
+
+    <div class="card" id="resumo-card">
+      <!-- preenchido via JS -->
+    </div>
+
+    <button class="btn btn-gold" id="btn-finalizar" onclick="finalizarVisita()">
+      ✅ Finalizar visita
+    </button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="irPara('etapa3')">← Voltar</button>
+  </div>
+</div>
+
+<!-- ===================== TELA: SUCESSO ===================== -->
+<div class="screen" id="screen-sucesso">
+  <div style="padding-top:40px;text-align:center">
+    <div style="font-size:64px;margin-bottom:16px">🎉</div>
+    <div class="screen-title" style="text-align:center">Visita finalizada!</div>
+    <div class="screen-subtitle" style="text-align:center">Obrigado pelo registro, <span id="sucesso-nome"></span>!</div>
+
+    <div class="card" style="margin-top:24px;text-align:left">
+      <div class="resumo-row">
+        <span class="resumo-label">Loja</span>
+        <span class="resumo-value" id="sucesso-loja"></span>
+      </div>
+      <div class="resumo-row">
+        <span class="resumo-label">Compliance sabores</span>
+        <span class="resumo-value" id="sucesso-compliance"></span>
+      </div>
+      <div class="resumo-row">
+        <span class="resumo-label">Horário</span>
+        <span class="resumo-value" id="sucesso-hora"></span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:24px" onclick="reiniciar()">
+      Nova visita
+    </button>
+  </div>
+</div>
+
+<div class="version-badge">v1.0</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, collection, addDoc, setDoc, doc, getDoc, updateDoc, query, where, getDocs, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let db = null;
+let visitId = null;
+let visitData = {
+  promotorName: '', promotorId: '', network: '', store: '', storeId: '',
+  lat: null, lng: null, gpsVerified: false, gpsDistance: null,
+  photoBefore: false, photoAfter: false, photoPrice: false,
+  priceValue: '',
+  flavorsFound: [], flavorsTotal: 0, flavorsCompliance: 0,
+  startedAt: null, status: 'active', notes: ''
+};
+let selectedStoreData = null;
+let photosUploaded = { antes: false, preco: false, depois: false };
+let flavorsConfig = [];
+
+// Sabores padrão Maturí
+const SABORES_PADRAO = [
+  'Tamarindo','Maracujá','Graviola','Cupuaçu','Açaí',
+  'Caju','Umbu','Cajá','Siriguela','Bacuri',
+  'Buriti','Pitanga'
+];
+
+// Redes e lojas
+const REDES_LOJAS = {
+  'CONDOR': ['Condor Água Verde','Condor Ahú','Condor Bacacheri','Condor Bairro Alto','Condor Batel',
+    'Condor Bigorrilho','Condor Boa Vista','Condor Boqueirão','Condor Cabral','Condor Cajuru',
+    'Condor Campo Comprido','Condor Capão Raso','Condor Cascatinha','Condor CIC','Condor Colombo',
+    'Condor Fazendinha','Condor Hauer','Condor Jardim das Américas','Condor Merces','Condor Novo Mundo',
+    'Condor Orleans','Condor Pinheirinho','Condor Portão','Condor Rebouças','Condor Santa Cândida',
+    'Condor Santa Felicidade','Condor São Braz','Condor São João','Condor Seminário','Condor Sítio Cercado',
+    'Condor Uberaba','Condor Vila Hauer','Condor Xaxim'],
+  'ADORATO': ['Adorato Batel','Adorato Bigorrilho','Adorato Cabral','Adorato Mercês','Adorato Seminário'],
+  'MAX MUFFATO': ['Muffato Almirante Tamandaré','Muffato Araucária','Muffato Campo Largo',
+    'Muffato Colombo','Muffato Fazenda Rio Grande','Muffato Pinhais','Muffato Piraquara',
+    'Muffato Portão','Muffato São José dos Pinhais'],
+  'FESTVAL': ['Festval Água Verde','Festval Batel','Festval Cabral','Festval Champagnat',
+    'Festval Ecoville','Festval Hugo Lange','Festval Mercês','Festval Rebouças'],
+  'CARREFOUR': ['Carrefour Caximba','Carrefour Colombo','Carrefour Hiper Pinhais',
+    'Carrefour Maracanã','Carrefour Portão','Carrefour São José dos Pinhais'],
+  'ASSAÍ': ['Assaí Colombo','Assaí Curitiba Hauer','Assaí Curitiba Norte','Assaí Pinhais'],
+  'SUPERPÃO': ['Superpão Alto da XV','Superpão Bacacheri','Superpão Boqueirão',
+    'Superpão Cajuru','Superpão Cidade Industrial','Superpão Portão'],
+  'FAMÍLIA FARINHA': ['Família Farinha Almirante Tamandaré','Família Farinha Colombo',
+    'Família Farinha Piraquara','Família Farinha São José dos Pinhais'],
+  'COOPER': ['Cooper Araucária','Cooper Campo Largo','Cooper Contenda','Cooper Fazenda Rio Grande'],
+  'VICARI': ['Vicari Centro','Vicari Hauer','Vicari Portão','Vicari Santa Cândida'],
+  'TOZETTO': ['Tozetto Almirante Tamandaré','Tozetto Colombo','Tozetto Piraquara'],
+  'ADEGA BRASIL': ['Adega Brasil Água Verde','Adega Brasil Batel','Adega Brasil Centro'],
+  'ADEGA FANNY': ['Adega Fanny Fanny','Adega Fanny Novo Mundo','Adega Fanny Pinheirinho'],
+  'SUPER VITOR': ['Super Vitor Almirante Tamandaré','Super Vitor Colombo'],
+  'DAL POZZO': ['Dal Pozzo Araucária','Dal Pozzo Campo Largo','Dal Pozzo Colombo'],
+  'SUPERVILLE': ['Superville Curitiba','Superville Pinhais'],
+  'SUPERDIA': ['Superdia Almirante Tamandaré','Superdia Colombo','Superdia Piraquara'],
+  'PALMEIRA': ['Palmeira Centro'],
+};
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  const cfg = getConfig();
+  if (!cfg) { irPara('config'); return; }
+
+  try {
+    const app = initializeApp({
+      apiKey: cfg.apiKey,
+      authDomain: `${cfg.projectId}.firebaseapp.com`,
+      projectId: cfg.projectId,
+      storageBucket: `${cfg.projectId}.firebasestorage.app`,
+      messagingSenderId: cfg.senderId,
+      appId: cfg.appId
+    });
+    db = getFirestore(app);
+    window._db = db;
+    window._fsLib = { collection, addDoc, setDoc, doc, getDoc, updateDoc, query, where, getDocs, serverTimestamp };
+  } catch(e) {
+    showToast('Erro ao conectar Firebase: ' + e.message);
+    irPara('config');
+    return;
+  }
+
+  // Carregar redes no select
+  const selectRede = document.getElementById('login-rede');
+  Object.keys(REDES_LOJAS).forEach(rede => {
+    const opt = document.createElement('option');
+    opt.value = rede;
+    opt.textContent = rede;
+    selectRede.appendChild(opt);
+  });
+
+  // Verificar visita em andamento
+  const savedId = localStorage.getItem('maturi_promo_visitId');
+  const savedTela = localStorage.getItem('maturi_promo_tela');
+  if (savedId && savedTela) {
+    document.getElementById('modalContinuar').classList.remove('hidden');
+  } else {
+    irPara('login');
+  }
+
+  // Offline listener
+  window.addEventListener('online', () => {
+    document.getElementById('offlineBanner').classList.remove('show');
+    showToast('🌐 Conexão restaurada!');
+  });
+  window.addEventListener('offline', () => {
+    document.getElementById('offlineBanner').classList.add('show');
+  });
+  if (!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
+}
+
+// ============================================================
+// CONFIG
+// ============================================================
+function getConfig() {
+  const raw = localStorage.getItem('maturi_promo_config');
+  return raw ? JSON.parse(raw) : null;
+}
+
+window.salvarConfig = function() {
+  const apiKey = document.getElementById('cfg-apiKey').value.trim();
+  const projectId = document.getElementById('cfg-projectId').value.trim();
+  const appId = document.getElementById('cfg-appId').value.trim();
+  const senderId = document.getElementById('cfg-senderId').value.trim();
+  if (!apiKey || !projectId || !appId || !senderId) {
+    showToast('Preencha todos os campos'); return;
+  }
+  localStorage.setItem('maturi_promo_config', JSON.stringify({ apiKey, projectId, appId, senderId }));
+  location.reload();
+};
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+window.irPara = function(tela) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tela).classList.add('active');
+  window.scrollTo(0, 0);
+};
+
+// ============================================================
+// AUTOCOMPLETE NOME
+// ============================================================
+let autocompleteTimer = null;
+window.autocompleteNome = async function(val) {
+  const list = document.getElementById('autocomplete-nome');
+  if (val.length < 2) { list.style.display = 'none'; return; }
+  clearTimeout(autocompleteTimer);
+  autocompleteTimer = setTimeout(async () => {
+    if (!db) return;
+    const { collection, getDocs } = window._fsLib;
+    try {
+      const snap = await getDocs(collection(db, 'promotores'));
+      const matches = [];
+      snap.forEach(d => {
+        const nome = d.data().name || '';
+        if (nome.toLowerCase().includes(val.toLowerCase())) matches.push({ id: d.id, nome });
+      });
+      if (matches.length === 0) { list.style.display = 'none'; return; }
+      list.innerHTML = '';
+      matches.slice(0,6).forEach(m => {
+        const div = document.createElement('div');
+        div.textContent = m.nome;
+        div.onclick = () => {
+          document.getElementById('login-nome').value = m.nome;
+          visitData.promotorId = m.id;
+          list.style.display = 'none';
+        };
+        list.appendChild(div);
+      });
+      list.style.display = 'block';
+    } catch(e) {}
+  }, 300);
+};
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#autocomplete-nome') && !e.target.closest('#login-nome')) {
+    document.getElementById('autocomplete-nome').style.display = 'none';
+  }
+});
+
+// ============================================================
+// LOJAS
+// ============================================================
+window.filtrarLojas = function() {
+  const rede = document.getElementById('login-rede').value;
+  const select = document.getElementById('login-loja');
+  select.innerHTML = '<option value="">Selecione a loja...</option>';
+  if (!rede || !REDES_LOJAS[rede]) return;
+  REDES_LOJAS[rede].forEach(loja => {
+    const opt = document.createElement('option');
+    opt.value = loja;
+    opt.textContent = loja;
+    select.appendChild(opt);
+  });
+};
+
+// ============================================================
+// LOGIN → GPS
+// ============================================================
+window.fazerLogin = async function() {
+  const nome = document.getElementById('login-nome').value.trim();
+  const rede = document.getElementById('login-rede').value;
+  const loja = document.getElementById('login-loja').value;
+  if (!nome) { showToast('Informe seu nome'); return; }
+  if (!rede) { showToast('Selecione a rede'); return; }
+  if (!loja) { showToast('Selecione a loja'); return; }
+
+  visitData.promotorName = nome;
+  visitData.network = rede;
+  visitData.store = loja;
+
+  // Buscar dados da loja no Firestore
+  irPara('gps');
+  document.getElementById('gps-status-title').textContent = 'Buscando dados da loja...';
+  document.getElementById('gps-status-box').className = 'gps-status checking';
+  document.getElementById('btn-avancar-gps').style.display = 'none';
+  document.getElementById('btn-tentar-gps').style.display = 'none';
+  document.getElementById('gps-info-card').style.display = 'none';
+
+  try {
+    const { collection, query, where, getDocs } = window._fsLib;
+    const q = query(collection(db, 'stores'), where('name', '==', loja));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      selectedStoreData = { id: d.id, ...d.data() };
+      visitData.storeId = d.id;
+    } else {
+      selectedStoreData = null;
+    }
+  } catch(e) {
+    selectedStoreData = null;
+  }
+
+  document.getElementById('gps-loja-nome').textContent = loja;
+  verificarGPS();
+};
+
+// ============================================================
+// GPS
+// ============================================================
+window.verificarGPS = function() {
+  const box = document.getElementById('gps-status-box');
+  const title = document.getElementById('gps-status-title');
+  const detail = document.getElementById('gps-status-detail');
+  box.className = 'gps-status checking';
+  title.textContent = 'Obtendo sua localização...';
+  detail.textContent = 'Aguarde...';
+  document.getElementById('btn-avancar-gps').style.display = 'none';
+  document.getElementById('btn-tentar-gps').style.display = 'none';
+
+  if (!navigator.geolocation) {
+    box.className = 'gps-status fail';
+    title.textContent = 'GPS não disponível';
+    detail.textContent = 'Seu dispositivo não suporta geolocalização';
+    document.getElementById('btn-avancar-gps').style.display = 'none';
+    document.getElementById('btn-tentar-gps').style.display = 'block';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      visitData.lat = lat;
+      visitData.lng = lng;
+
+      document.getElementById('gps-info-card').style.display = 'block';
+
+      if (!selectedStoreData || !selectedStoreData.lat || !selectedStoreData.lng) {
+        // Loja sem GPS cadastrado — avança com aviso
+        box.className = 'gps-status ok';
+        title.textContent = 'Localização obtida';
+        detail.textContent = 'Loja sem GPS cadastrado — registrando sua posição';
+        document.getElementById('gps-distancia').textContent = 'Não verificada';
+        document.getElementById('gps-raio').textContent = 'Sem cadastro';
+        visitData.gpsVerified = false;
+        visitData.gpsDistance = null;
+        document.getElementById('btn-avancar-gps').style.display = 'block';
+        return;
+      }
+
+      const dist = haversine(lat, lng, selectedStoreData.lat, selectedStoreData.lng);
+      const raio = selectedStoreData.gpsRadius || 200;
+      visitData.gpsDistance = Math.round(dist);
+      document.getElementById('gps-distancia').textContent = `${Math.round(dist)}m`;
+      document.getElementById('gps-raio').textContent = `${raio}m`;
+
+      if (dist <= raio) {
+        box.className = 'gps-status ok';
+        title.textContent = '✅ Você está na loja!';
+        detail.textContent = `${Math.round(dist)}m de distância do ponto cadastrado`;
+        visitData.gpsVerified = true;
+        document.getElementById('btn-avancar-gps').style.display = 'block';
+      } else {
+        box.className = 'gps-status fail';
+        title.textContent = '❌ Fora do raio permitido';
+        detail.textContent = `Você está a ${Math.round(dist)}m — máximo permitido: ${raio}m`;
+        visitData.gpsVerified = false;
+        document.getElementById('btn-tentar-gps').style.display = 'block';
+      }
+    },
+    err => {
+      box.className = 'gps-status fail';
+      document.getElementById('gps-info-card').style.display = 'none';
+      if (err.code === 1) {
+        title.textContent = '❌ Permissão negada';
+        detail.textContent = 'Habilite o GPS nas configurações do navegador';
+      } else {
+        title.textContent = '❌ Erro ao obter localização';
+        detail.textContent = 'Verifique se o GPS está ativo';
+      }
+      document.getElementById('btn-tentar-gps').style.display = 'block';
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+};
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ============================================================
+// ETAPA 1
+// ============================================================
+window.irParaEtapa1 = async function() {
+  // Criar visita no Firestore
+  try {
+    const { collection, addDoc, serverTimestamp } = window._fsLib;
+    const docRef = await addDoc(collection(db, 'visits'), {
+      ...visitData,
+      startedAt: serverTimestamp(),
+      status: 'active'
+    });
+    visitId = docRef.id;
+    localStorage.setItem('maturi_promo_visitId', visitId);
+    localStorage.setItem('maturi_promo_tela', 'etapa1');
+    localStorage.setItem('maturi_promo_data', JSON.stringify(visitData));
+  } catch(e) {
+    showToast('Aviso: erro ao criar visita online — continuando offline');
+    visitId = 'offline_' + Date.now();
+    localStorage.setItem('maturi_promo_visitId', visitId);
+  }
+
+  // Carregar sabores
+  await carregarSabores();
+  irPara('etapa1');
+};
+
+async function carregarSabores() {
+  try {
+    const { collection, getDocs } = window._fsLib;
+    const snap = await getDocs(collection(db, 'sabores'));
+    if (!snap.empty) {
+      flavorsConfig = [];
+      snap.forEach(d => flavorsConfig.push(d.data().name));
+    } else {
+      flavorsConfig = [...SABORES_PADRAO];
+    }
+  } catch(e) {
+    flavorsConfig = [...SABORES_PADRAO];
+  }
+  renderFlavors();
+}
+
+function renderFlavors() {
+  const grid = document.getElementById('flavor-grid');
+  grid.innerHTML = '';
+  flavorsConfig.forEach(sabor => {
+    const found = visitData.flavorsFound.includes(sabor);
+    const div = document.createElement('div');
+    div.className = 'flavor-item' + (found ? ' checked' : '');
+    div.innerHTML = `<span class="check-icon">${found ? '✅' : '⬜'}</span><span>${sabor}</span>`;
+    div.onclick = () => toggleFlavor(sabor, div);
+    grid.appendChild(div);
+  });
+  updateCompliance();
+}
+
+window.toggleFlavor = function(sabor, el) {
+  const idx = visitData.flavorsFound.indexOf(sabor);
+  if (idx === -1) {
+    visitData.flavorsFound.push(sabor);
+    el.className = 'flavor-item checked';
+    el.querySelector('.check-icon').textContent = '✅';
+  } else {
+    visitData.flavorsFound.splice(idx, 1);
+    el.className = 'flavor-item';
+    el.querySelector('.check-icon').textContent = '⬜';
+  }
+  updateCompliance();
+  salvarRascunho();
+};
+
+function updateCompliance() {
+  const total = flavorsConfig.length || 1;
+  const found = visitData.flavorsFound.length;
+  const pct = Math.round((found / total) * 100);
+  visitData.flavorsTotal = total;
+  visitData.flavorsCompliance = pct;
+  document.getElementById('compliance-pct').textContent = pct + '%';
+  const fill = document.getElementById('compliance-fill');
+  fill.style.width = pct + '%';
+  fill.className = 'compliance-bar-fill' + (pct >= 80 ? '' : pct >= 50 ? ' mid' : ' low');
+}
+
+// ============================================================
+// FOTOS
+// ============================================================
+window.tirarFoto = function(tipo) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showToast('📤 Enviando foto...');
+    const base64 = await fileToBase64(file);
+    // Mostrar thumb
+    adicionarThumb(tipo, base64, false);
+    // Upload Firestore
+    try {
+      const { doc, setDoc, serverTimestamp } = window._fsLib;
+      const photoId = tipo + '_' + Date.now();
+      await setDoc(doc(db, 'visits', visitId, 'photos', photoId), {
+        tipo, base64, uploadedAt: serverTimestamp()
+      });
+      photosUploaded[tipo] = true;
+      marcarThumbUploaded(tipo);
+      atualizarBotaoFoto(tipo);
+      // Atualizar visit
+      const { updateDoc, doc: docFn } = window._fsLib;
+      const update = {};
+      if (tipo === 'antes') update.photoBefore = true;
+      if (tipo === 'preco') update.photoPrice = true;
+      if (tipo === 'depois') update.photoAfter = true;
+      await updateDoc(docFn(db, 'visits', visitId), update);
+      visitData['photo' + (tipo === 'antes' ? 'Before' : tipo === 'preco' ? 'Price' : 'After')] = true;
+      showToast('✅ Foto salva!');
+    } catch(e) {
+      showToast('⚠️ Foto salva localmente');
+    }
+    salvarRascunho();
+  };
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
+};
+
+function adicionarThumb(tipo, src, uploaded) {
+  const wrap = document.getElementById('thumbs-' + tipo);
+  const img = document.createElement('img');
+  img.src = src;
+  img.className = 'photo-thumb' + (uploaded ? ' uploaded' : '');
+  img.dataset.tipo = tipo;
+  wrap.appendChild(img);
+}
+
+function marcarThumbUploaded(tipo) {
+  const wrap = document.getElementById('thumbs-' + tipo);
+  if (!wrap) return;
+  const imgs = wrap.querySelectorAll('img');
+  if (imgs.length > 0) imgs[imgs.length - 1].classList.add('uploaded');
+}
+
+function atualizarBotaoFoto(tipo) {
+  const btn = document.getElementById('btn-foto-' + tipo);
+  if (!btn) return;
+  btn.classList.add('done');
+  btn.innerHTML = `<span>✅</span> Foto registrada — tirar outra`;
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ============================================================
+// ETAPA 2
+// ============================================================
+window.irParaEtapa2 = function() {
+  if (!photosUploaded.antes) { showToast('📸 Tire a foto de antes primeiro'); return; }
+  localStorage.setItem('maturi_promo_tela', 'etapa2');
+  irPara('etapa2');
+};
+
+// ============================================================
+// ETAPA 3
+// ============================================================
+window.irParaEtapa3 = async function() {
+  // Salvar sabores no Firestore
+  try {
+    const { doc, updateDoc } = window._fsLib;
+    await updateDoc(doc(db, 'visits', visitId), {
+      flavorsFound: visitData.flavorsFound,
+      flavorsTotal: visitData.flavorsTotal,
+      flavorsCompliance: visitData.flavorsCompliance
+    });
+  } catch(e) {}
+  localStorage.setItem('maturi_promo_tela', 'etapa3');
+  irPara('etapa3');
+};
+
+// ============================================================
+// CONFIRMAÇÃO
+// ============================================================
+window.irParaConfirmacao = function() {
+  if (!photosUploaded.depois) { showToast('📸 Tire a foto de depois primeiro'); return; }
+  const obs = document.getElementById('obs-texto').value.trim();
+  visitData.notes = obs;
+  // Montar resumo
+  const card = document.getElementById('resumo-card');
+  const pct = visitData.flavorsCompliance;
+  const cor = pct >= 80 ? 'var(--sucesso)' : pct >= 50 ? 'var(--aviso)' : 'var(--erro)';
+  card.innerHTML = `
+    <div class="resumo-row"><span class="resumo-label">Promotor</span><span class="resumo-value">${visitData.promotorName}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Rede</span><span class="resumo-value">${visitData.network}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Loja</span><span class="resumo-value">${visitData.store}</span></div>
+    <div class="resumo-row"><span class="resumo-label">GPS</span><span class="resumo-value">${visitData.gpsVerified ? '✅ Verificado (' + visitData.gpsDistance + 'm)' : '⚠️ Não verificado'}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Foto antes</span><span class="resumo-value">${photosUploaded.antes ? '✅' : '❌'}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Foto preço</span><span class="resumo-value">${photosUploaded.preco ? '✅' : '—'}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Foto depois</span><span class="resumo-value">${photosUploaded.depois ? '✅' : '❌'}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Preço registrado</span><span class="resumo-value">${document.getElementById('preco-valor').value || '—'}</span></div>
+    <div class="resumo-row"><span class="resumo-label">Sabores encontrados</span><span class="resumo-value" style="color:${cor}">${visitData.flavorsFound.length}/${visitData.flavorsTotal} (${pct}%)</span></div>
+    ${obs ? `<div class="resumo-row"><span class="resumo-label">Obs.</span><span class="resumo-value" style="max-width:200px">${obs}</span></div>` : ''}
+  `;
+  localStorage.setItem('maturi_promo_tela', 'confirmacao');
+  irPara('confirmacao');
+};
+
+// ============================================================
+// FINALIZAR
+// ============================================================
+window.finalizarVisita = async function() {
+  const btn = document.getElementById('btn-finalizar');
+  btn.innerHTML = '<span class="spinner"></span>Finalizando...';
+  btn.disabled = true;
+
+  const preco = document.getElementById('preco-valor').value.trim();
+  visitData.priceValue = preco;
+  visitData.notes = document.getElementById('obs-texto').value.trim();
+
+  try {
+    const { doc, updateDoc, serverTimestamp } = window._fsLib;
+    await updateDoc(doc(db, 'visits', visitId), {
+      status: 'done',
+      finishedAt: serverTimestamp(),
+      notes: visitData.notes,
+      priceValue: visitData.priceValue,
+      priceVerified: !!preco,
+      flavorsFound: visitData.flavorsFound,
+      flavorsCompliance: visitData.flavorsCompliance
+    });
+  } catch(e) {
+    showToast('⚠️ Finalizando offline');
+  }
+
+  // Tela sucesso
+  document.getElementById('sucesso-nome').textContent = visitData.promotorName.split(' ')[0];
+  document.getElementById('sucesso-loja').textContent = visitData.store;
+  document.getElementById('sucesso-compliance').textContent = visitData.flavorsCompliance + '%';
+  document.getElementById('sucesso-hora').textContent = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+  limparSessao();
+  irPara('sucesso');
+};
+
+// ============================================================
+// MODAL CONTINUAR
+// ============================================================
+window.continuarVisita = async function() {
+  document.getElementById('modalContinuar').classList.add('hidden');
+  const savedId = localStorage.getItem('maturi_promo_visitId');
+  const savedTela = localStorage.getItem('maturi_promo_tela');
+  const savedData = localStorage.getItem('maturi_promo_data');
+
+  visitId = savedId;
+  if (savedData) {
+    try { Object.assign(visitData, JSON.parse(savedData)); } catch(e) {}
+  }
+
+  // Restaurar fotos e sabores
+  await carregarSabores();
+  irPara(savedTela || 'etapa1');
+};
+
+window.cancelarVisitaAnterior = function() {
+  document.getElementById('modalContinuar').classList.add('hidden');
+  document.getElementById('modalCancelar').classList.remove('hidden');
+};
+
+window.confirmarCancelamento = async function() {
+  const savedId = localStorage.getItem('maturi_promo_visitId');
+  if (savedId && !savedId.startsWith('offline_') && db) {
+    try {
+      const { doc, updateDoc } = window._fsLib;
+      await updateDoc(doc(db, 'visits', savedId), { status: 'cancelled' });
+    } catch(e) {}
+  }
+  limparSessao();
+  document.getElementById('modalCancelar').classList.add('hidden');
+  irPara('login');
+};
+
+window.fecharModalCancelar = function() {
+  document.getElementById('modalCancelar').classList.add('hidden');
+  document.getElementById('modalContinuar').classList.remove('hidden');
+};
+
+// ============================================================
+// RASCUNHO / PERSISTÊNCIA
+// ============================================================
+window.salvarRascunho = function() {
+  localStorage.setItem('maturi_promo_data', JSON.stringify(visitData));
+};
+
+function limparSessao() {
+  localStorage.removeItem('maturi_promo_visitId');
+  localStorage.removeItem('maturi_promo_tela');
+  localStorage.removeItem('maturi_promo_data');
+  visitId = null;
+  visitData = {
+    promotorName:'', promotorId:'', network:'', store:'', storeId:'',
+    lat:null, lng:null, gpsVerified:false, gpsDistance:null,
+    photoBefore:false, photoAfter:false, photoPrice:false,
+    priceValue:'', flavorsFound:[], flavorsTotal:0, flavorsCompliance:0,
+    startedAt:null, status:'active', notes:''
+  };
+  photosUploaded = { antes:false, preco:false, depois:false };
+}
+
+// ============================================================
+// REINICIAR
+// ============================================================
+window.reiniciar = function() {
+  // Limpar campos login
+  document.getElementById('login-nome').value = '';
+  document.getElementById('login-rede').value = '';
+  document.getElementById('login-loja').innerHTML = '<option value="">Selecione a loja...</option>';
+  document.getElementById('preco-valor').value = '';
+  document.getElementById('obs-texto').value = '';
+  // Limpar thumbs
+  ['antes','preco','depois'].forEach(t => {
+    const w = document.getElementById('thumbs-' + t);
+    if (w) w.innerHTML = '';
+    const b = document.getElementById('btn-foto-' + t);
+    if (b) {
+      b.classList.remove('done');
+      const labels = { antes: 'Fotografar gôndola', preco: 'Fotografar etiqueta de preço', depois: 'Fotografar gôndola abastecida' };
+      const icons = { antes: '📷', preco: '💰', depois: '📷' };
+      b.innerHTML = `<span>${icons[t]}</span> ${labels[t]}`;
+    }
+  });
+  irPara('login');
+};
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body>
+</html>
