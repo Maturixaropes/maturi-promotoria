@@ -321,8 +321,23 @@ tr:last-child td { border-bottom: none; }
 <div class="modal-overlay hidden" id="modal-sched">
   <div class="modal-box">
     <div class="modal-title">Nova Visita Programada</div>
-    <div class="field"><label>Loja</label>
-      <select id="sched-loja"><option value="">Selecione a loja...</option></select>
+    <div class="field">
+      <label>Rede</label>
+      <select id="sched-rede" onchange="filtrarLojasSched()">
+        <option value="">Selecione a rede...</option>
+        <option>CONDOR</option><option>ADORATO</option><option>MAX MUFFATO</option>
+        <option>FESTVAL</option><option>CARREFOUR</option><option>ASSAÍ</option>
+        <option>SUPERPÃO</option><option>FAMÍLIA FARINHA</option><option>COOPER</option>
+        <option>VICARI</option><option>TOZETTO</option><option>ADEGA BRASIL</option>
+        <option>ADEGA FANNY</option><option>SUPER VITOR</option><option>DAL POZZO</option>
+        <option>SUPERVILLE</option><option>SUPERDIA</option><option>PALMEIRA</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Loja</label>
+      <select id="sched-loja" disabled>
+        <option value="">Selecione a rede primeiro...</option>
+      </select>
     </div>
     <div class="field"><label>Dias da semana</label>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px" id="sched-dias">
@@ -370,7 +385,7 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-item" onclick="goTab('ia')"><span class="nav-icon">🤖</span> Análise IA</div>
       <div class="nav-item" onclick="goTab('equipe')"><span class="nav-icon">👥</span> Equipe</div>
     </nav>
-    <div class="sidebar-footer"><div class="version">v1.3 — Dashboard</div></div>
+    <div class="sidebar-footer"><div class="version">v1.4 — Dashboard</div></div>
   </div>
 
   <!-- MAIN -->
