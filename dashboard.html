@@ -370,7 +370,7 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-item" onclick="goTab('ia')"><span class="nav-icon">🤖</span> Análise IA</div>
       <div class="nav-item" onclick="goTab('equipe')"><span class="nav-icon">👥</span> Equipe</div>
     </nav>
-    <div class="sidebar-footer"><div class="version">v1.2 — Dashboard</div></div>
+    <div class="sidebar-footer"><div class="version">v1.3 — Dashboard</div></div>
   </div>
 
   <!-- MAIN -->
@@ -946,10 +946,29 @@ function renderCronograma() {
   });
 }
 
-window.abrirModalSched = async function() {
+window.filtrarLojasSched = function() {
+  const rede = document.getElementById('sched-rede').value;
   const sel = document.getElementById('sched-loja');
   sel.innerHTML = '<option value="">Selecione a loja...</option>';
-  allLojas.forEach(l => { const o = document.createElement('option'); o.value = l.id; o.dataset.name = l.name; o.dataset.network = l.network; o.textContent = `${l.network} — ${l.name}`; sel.appendChild(o); });
+  if (!rede) { sel.disabled = true; return; }
+  // Filtrar lojas do Firestore pela rede
+  const lojasDaRede = allLojas.filter(l => l.network === rede);
+  lojasDaRede.sort((a,b) => a.name.localeCompare(b.name)).forEach(l => {
+    const o = document.createElement('option');
+    o.value = l.id;
+    o.dataset.name = l.name;
+    o.dataset.network = l.network;
+    o.textContent = l.name;
+    sel.appendChild(o);
+  });
+  sel.disabled = false;
+};
+
+window.abrirModalSched = async function() {
+  document.getElementById('sched-rede').value = '';
+  const sel = document.getElementById('sched-loja');
+  sel.innerHTML = '<option value="">Selecione a rede primeiro...</option>';
+  sel.disabled = true;
   document.querySelectorAll('#sched-dias input').forEach(cb => cb.checked = false);
   document.getElementById('modal-sched').classList.remove('hidden');
 };
