@@ -164,8 +164,8 @@ const THUMBS={};
 let S=loadState();
 let NETS=[],STORES=[],pending=0,lastPos=null,watchId=null;
 
-function blank(){return {step:1,name:(S&&S.name)||'',netId:'',storeId:'',visitId:'',startedAt:0,photos:{},missing:[],flags:[],popupSeen:false,expFlavor:'',locOk:false,attemptsOut:0,done:false}}
-function loadState(){try{const s=JSON.parse(localStorage.getItem('mp_state')||'null');if(s&&s.visitId&&!s.done)return s;if(s&&s.name)return Object.assign(blank(),{name:s.name})}catch(e){}return blank()}
+function blank(name){return {step:1,name:name||'',netId:'',storeId:'',visitId:'',startedAt:0,photos:{},missing:[],flags:[],popupSeen:false,expFlavor:'',locOk:false,attemptsOut:0,done:false}}
+function loadState(){try{const s=JSON.parse(localStorage.getItem('mp_state')||'null');if(s&&s.visitId&&!s.done)return s;if(s&&s.name)return blank(s.name)}catch(e){}return blank('')}
 function save(){try{localStorage.setItem('mp_state',JSON.stringify(S))}catch(e){}}
 function toast(m,ms=2500){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,ms)}
 function banner(m){const b=$('banner');b.textContent=m;b.hidden=!m}
@@ -371,7 +371,7 @@ function sendObs(){
   const t=$('obs').value.trim();if(!t)return toast('Escreva a observação');
   vupdate({note:t,noteAt:Date.now()});$('btnObs').disabled=true;$('btnObs').textContent='Observação enviada ✓';
 }
-function newVisit(){const n=S.name;S=blank();S.name=n;save();go(1)}
+function newVisit(){S=blank(S.name);save();go(1)}
 function cancelVisit(){
   if(!confirm('Cancelar esta promotoria? As fotos já tiradas ficarão registradas como cancelada.'))return;
   if(S.visitId)vupdate({status:'cancelada',finishedAt:Date.now()});
@@ -401,7 +401,7 @@ async function init(){
   $('ver').textContent='Promotoria '+VERSION;
   try{await loadData()}catch(e){loadCached()}
   if(!NETS.length)loadCached();
-  if(S.visitId&&!S.done&&S.step>1&&net()&&store()){if(S.locOk)startWatch();go(S.step)}else{if(S.visitId&&!S.done)S=blank();go(1)}
+  if(S.visitId&&!S.done&&S.step>1&&net()&&store()){if(S.locOk)startWatch();go(S.step)}else{if(S.visitId&&!S.done)S=blank(S.name);go(1)}
   getDocsFromServer(collection(db,'networks')).then(()=>banner('')).catch(e=>{
     if(e.code==='permission-denied')banner('Banco bloqueado pelas regras do Firestore. Avise o gestor.');
     else if(navigator.onLine)banner('Sem conexão com o banco de dados ('+(e.code||'erro')+'). Dados serão salvos no aparelho.');
