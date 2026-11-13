@@ -119,7 +119,7 @@ details details>summary{background:#f8f5e8}
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDocs,getDocsFromServer,setDoc,updateDoc,deleteDoc,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const VERSION='v1.3';
+const VERSION='v1.5';
 const PASS='maturi2025';
 const PROXY='https://maturi-ai-proxy.contato-7ed.workers.dev';
 const cfg={apiKey:"AIzaSyCfqBr0MgVhgRi2xhGjtXE_Y7tzeZKlPKQ",authDomain:"maturi-promotoria.firebaseapp.com",projectId:"maturi-promotoria",storageBucket:"maturi-promotoria.firebasestorage.app",messagingSenderId:"931145421913",appId:"1:931145421913:web:66560473caaee307e20d48"};
@@ -179,14 +179,22 @@ const netOpts=(sel,all)=>(all?'<option value="">Todas as redes</option>':'<optio
 const done=()=>state.visits.filter(v=>v.status==='concluida');
 
 /* ---------- PAINEL ---------- */
+const mondayOf=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()-((d.getDay()+6)%7));
+const parseKey=k=>new Date(k+'T00:00:00');
+function dueWeek(sc,d){
+  if(sc.freq!=='quinzenal'||!sc.anchor)return true;
+  const wk=Math.round((mondayOf(d)-parseKey(sc.anchor))/(7*864e5));
+  return wk>=0&&wk%2===0;
+}
 function missingSched(){
   const out=[],today=new Date();
   for(let i=0;i<7;i++){
     const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()-i),k=dkey(d),wd=d.getDay();
     state.stores.forEach(s=>{
       const sc=s.schedule;if(!sc||!sc.days||!sc.days.includes(wd))return;
+      if(!dueWeek(sc,d))return;
       if(s.scheduleFrom&&k<s.scheduleFrom)return;
-      const need=sc.perDay||1;
+      const need=1;
       const have=state.visits.filter(v=>v.storeId===s.id&&v.dateKey===k&&v.status==='concluida').length;
       if(have<need)out.push({store:s,date:k,today:i===0,need,have});
     });
@@ -297,29 +305,32 @@ function zoom(src){const l=$('lb');l.innerHTML='<img alt="" src="'+src+'">';l.hi
 /* ---------- CRONOGRAMA ---------- */
 function rCrono(){
   const nid=state.cronoNet;const list=state.stores.filter(s=>s.networkId===nid&&(!state.cronoUF||s.uf===state.cronoUF));
-  let perWeek=0;list.forEach(s=>{const sc=s.schedule;if(sc&&sc.days)perWeek+=sc.days.length*(sc.perDay||1)});
+  let perWeek=0;list.forEach(s=>{const sc=s.schedule;if(sc&&sc.days)perWeek+=sc.days.length*(sc.freq==='quinzenal'?0.5:1)});
   $('t-crono').innerHTML=`<h2>Cronograma de visitas</h2>
-  <p class="muted" style="margin-bottom:10px">Defina em quais dias da semana cada loja deve receber promotoria. O painel cobra automaticamente as visitas que não foram registradas.</p>
-  <div class="row"><select data-act="cronoNet">${netOpts(nid)}</select><select data-act="cronoUF">${ufOpts(state.cronoUF,true)}</select>${nid&&list.length?`<button class="btn alt" data-act="cronoAll">Copiar a 1ª loja para todas da rede</button><span class="muted">${perWeek} visita(s)/semana na rede</span>`:''}</div>
-  <div class="card tw">${nid?(list.length?`<table><thead><tr><th>Loja</th><th>Dias da semana</th><th>Visitas/dia</th></tr></thead><tbody>${list.map(s=>{const sc=s.schedule||{days:[],perDay:1};return `<tr><td>${esc(s.name)} <span class="muted">${esc(s.uf||'')}</span></td><td class="days">${WD.map((n,i)=>`<label><input type="checkbox" data-act="sch" data-id="${esc(s.id)}" data-d="${i}" ${sc.days.includes(i)?'checked':''}>${n}</label>`).join('')}</td><td><select data-act="schper" data-id="${esc(s.id)}"><option value="1" ${(sc.perDay||1)===1?'selected':''}>1</option><option value="2" ${sc.perDay===2?'selected':''}>2</option></select></td></tr>`}).join('')}</tbody></table>`:'<p class="muted">Esta rede não tem lojas cadastradas.</p>'):'<p class="muted">Selecione uma rede.</p>'}</div>`;
+  <p class="muted" style="margin-bottom:10px">Defina a frequência (semanal ou quinzenal) e os dias da semana de cada loja. O painel cobra automaticamente as visitas que não foram registradas.</p>
+  <div class="row"><select data-act="cronoNet">${netOpts(nid)}</select><select data-act="cronoUF">${ufOpts(state.cronoUF,true)}</select>${nid&&list.length?`<button class="btn alt" data-act="cronoAll">Copiar a 1ª loja para todas da rede</button><span class="muted">≈ ${Math.round(perWeek*10)/10} visita(s)/semana na rede</span>`:''}</div>
+  <div class="card tw">${nid?(list.length?`<table><thead><tr><th>Loja</th><th>Frequência</th><th>Dias da semana</th></tr></thead><tbody>${list.map(s=>{const sc=s.schedule||{days:[],perDay:1};const q=sc.freq==='quinzenal';return `<tr><td>${esc(s.name)} <span class="muted">${esc(s.uf||'')}</span></td><td><select data-act="schfreq" data-id="${esc(s.id)}"><option value="semanal" ${q?'':'selected'}>Semanal</option><option value="quinzenal" ${q?'selected':''}>Quinzenal</option></select>${q?`<br><span class="muted">1ª visita na semana de</span><br><input type="date" data-act="schanc" data-id="${esc(s.id)}" value="${esc(sc.anchor||'')}">`:''}</td><td class="days">${WD.map((n,i)=>`<label><input type="checkbox" data-act="sch" data-id="${esc(s.id)}" data-d="${i}" ${sc.days.includes(i)?'checked':''}>${n}</label>`).join('')}</td></tr>`}).join('')}</tbody></table>`:'<p class="muted">Esta rede não tem lojas cadastradas.</p>'):'<p class="muted">Selecione uma rede.</p>'}</div>`;
 }
-async function saveSched(id,days,perDay){
+async function saveSched(id,r){
   const s=state.stores.find(x=>x.id===id);if(!s)return;
   const had=s.schedule&&s.schedule.days&&s.schedule.days.length;
-  const data={schedule:{days,perDay}};
-  if(!had&&days.length)data.scheduleFrom=dkey(new Date());
+  const sc={days:r.days,perDay:1,freq:r.freq==='quinzenal'?'quinzenal':'semanal'};
+  if(sc.freq==='quinzenal'){const base=r.anchor?parseKey(r.anchor):new Date();sc.anchor=dkey(mondayOf(isNaN(base)?new Date():base))}
+  const data={schedule:sc};
+  if(!had&&r.days.length)data.scheduleFrom=dkey(new Date());
   Object.assign(s,data);
-  try{await updateDoc(doc(db,'stores',id),data);toast('Salvo ✓')}catch(e){toast('Erro ao salvar: '+(e.code||e.message),4000)}
+  try{await setDoc(doc(db,'stores',id),data,{merge:true});toast('Salvo ✓')}catch(e){toast('Erro ao salvar: '+(e.code||e.message),4000)}
 }
 function readSched(id){
   const days=[...document.querySelectorAll('input[data-act="sch"][data-id="'+id+'"]')].filter(x=>x.checked).map(x=>+x.dataset.d);
-  const sel=document.querySelector('select[data-act="schper"][data-id="'+id+'"]');
-  return {days,perDay:sel?+sel.value:1};
+  const f=document.querySelector('select[data-act="schfreq"][data-id="'+id+'"]');
+  const an=document.querySelector('input[data-act="schanc"][data-id="'+id+'"]');
+  return {days,freq:f?f.value:'semanal',anchor:an?an.value:''};
 }
 async function cronoAll(){
   const list=state.stores.filter(s=>s.networkId===state.cronoNet);if(list.length<2)return;
   const base=readSched(list[0].id);if(!confirm('Aplicar '+(base.days.map(d=>WD[d]).join(', ')||'nenhum dia')+' a todas as '+list.length+' lojas?'))return;
-  for(const s of list)await saveSched(s.id,base.days,base.perDay);
+  for(const s of list)await saveSched(s.id,base);
   rCrono();
 }
 
@@ -543,7 +554,8 @@ document.addEventListener('change',e=>{
   else if(a==='lojaUF'){state.lojaUF=t.value;rLojas()}
   else if(a==='cronoUF'){state.cronoUF=t.value;rCrono()}
   else if(a==='painelUF'){state.painelUF=t.value;rPainel()}
-  else if(a==='sch'||a==='schper'){const r=readSched(t.dataset.id);saveSched(t.dataset.id,r.days,r.perDay)}
+  else if(a==='sch'||a==='schanc'){saveSched(t.dataset.id,readSched(t.dataset.id))}
+  else if(a==='schfreq'){saveSched(t.dataset.id,readSched(t.dataset.id)).then(()=>rCrono())}
 });
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.act==='promoQ'){state.promoQ=t.value;clearTimeout(input.t);input.t=setTimeout(()=>{rPromo();const el=document.querySelector('[data-act="promoQ"]');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},350)}});
 function input(){}
