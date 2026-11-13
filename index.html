@@ -79,8 +79,10 @@ button{font-family:inherit;cursor:pointer}
   <p class="s">Informe quem você é e onde está fazendo a promotoria.</p>
   <label for="name">Seu nome</label>
   <input id="name" autocomplete="name" placeholder="Nome completo">
+  <label for="uf">Estado</label>
+  <select id="uf"><option value="">Selecione o estado…</option></select>
   <label for="net">Rede</label>
-  <select id="net"><option value="">Selecione a rede…</option></select>
+  <select id="net" disabled><option value="">Selecione o estado primeiro</option></select>
   <label for="store">Unidade / loja</label>
   <select id="store" disabled><option value="">Selecione a rede primeiro</option></select>
   <button class="btn" id="btn1" data-act="next1" disabled>Continuar</button>
@@ -149,7 +151,7 @@ button{font-family:inherit;cursor:pointer}
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDocs,getDocsFromServer,setDoc,updateDoc,waitForPendingWrites} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const VERSION='v1.0';
+const VERSION='v1.1';
 const cfg={apiKey:"AIzaSyCfqBr0MgVhgRi2xhGjtXE_Y7tzeZKlPKQ",authDomain:"maturi-promotoria.firebaseapp.com",projectId:"maturi-promotoria",storageBucket:"maturi-promotoria.firebasestorage.app",messagingSenderId:"931145421913",appId:"1:931145421913:web:66560473caaee307e20d48"};
 const app=initializeApp(cfg);
 const db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
@@ -160,11 +162,12 @@ const byName=(a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR');
 const BEFORE=[['b1','Área de venda — alcoólicos'],['b2','Preço — área de alcoólicos'],['b3','Área de venda — sucos'],['b4','Preço — área de sucos']];
 const AFTER=BEFORE.map(x=>['a'+x[0].slice(1),x[1]]);
 const EXP=[['e1','Validade da garrafa']];
+const UFN={AC:'Acre',AL:'Alagoas',AP:'Amapá',AM:'Amazonas',BA:'Bahia',CE:'Ceará',DF:'Distrito Federal',ES:'Espírito Santo',GO:'Goiás',MA:'Maranhão',MT:'Mato Grosso',MS:'Mato Grosso do Sul',MG:'Minas Gerais',PA:'Pará',PB:'Paraíba',PR:'Paraná',PE:'Pernambuco',PI:'Piauí',RJ:'Rio de Janeiro',RN:'Rio Grande do Norte',RS:'Rio Grande do Sul',RO:'Rondônia',RR:'Roraima',SC:'Santa Catarina',SP:'São Paulo',SE:'Sergipe',TO:'Tocantins'};
 const THUMBS={};
 let S=loadState();
 let NETS=[],STORES=[],pending=0,lastPos=null,watchId=null;
 
-function blank(name){return {step:1,name:name||'',netId:'',storeId:'',visitId:'',startedAt:0,photos:{},missing:[],flags:[],popupSeen:false,expFlavor:'',locOk:false,attemptsOut:0,done:false}}
+function blank(name){return {step:1,name:name||'',uf:'',netId:'',storeId:'',visitId:'',startedAt:0,photos:{},missing:[],flags:[],popupSeen:false,expFlavor:'',locOk:false,attemptsOut:0,done:false}}
 function loadState(){try{const s=JSON.parse(localStorage.getItem('mp_state')||'null');if(s&&s.visitId&&!s.done)return s;if(s&&s.name)return blank(s.name)}catch(e){}return blank('')}
 function save(){try{localStorage.setItem('mp_state',JSON.stringify(S))}catch(e){}}
 function toast(m,ms=2500){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,ms)}
@@ -208,17 +211,25 @@ function go(step){
 }
 function renderS1(){
   $('name').value=S.name||'';
-  const ns=$('net');ns.innerHTML='<option value="">Selecione a rede…</option>'+NETS.map(n=>`<option value="${esc(n.id)}">${esc(n.name)}</option>`).join('');
-  ns.value=S.netId||'';fillStores();checkS1();
+  const ufs=[...new Set(STORES.map(s=>s.uf||'--'))].sort();
+  $('uf').innerHTML='<option value="">Selecione o estado…</option>'+ufs.map(u=>`<option value="${esc(u)}">${esc(u==='--'?'Sem estado cadastrado':(UFN[u]?u+' — '+UFN[u]:u))}</option>`).join('');
+  $('uf').value=S.uf||'';fillNets();fillStores();checkS1();
   if(!NETS.length)banner('Nenhuma rede cadastrada ainda. Peça ao gestor para cadastrar no painel.');
 }
+function fillNets(){
+  const ns=$('net'),u=$('uf').value;
+  const list=NETS.filter(n=>STORES.some(s=>s.networkId===n.id&&(s.uf||'--')===u));
+  ns.disabled=!u;
+  ns.innerHTML=(u?(list.length?'<option value="">Selecione a rede…</option>':'<option value="">Nenhuma rede neste estado</option>'):'<option value="">Selecione o estado primeiro</option>')+list.map(n=>`<option value="${esc(n.id)}">${esc(n.name)}</option>`).join('');
+  ns.value=list.some(n=>n.id===S.netId)?S.netId:'';
+}
 function fillStores(){
-  const ss=$('store');const list=STORES.filter(s=>s.networkId===$('net').value);
+  const ss=$('store');const list=STORES.filter(s=>s.networkId===$('net').value&&(s.uf||'--')===$('uf').value);
   ss.disabled=!$('net').value;
   ss.innerHTML=(list.length?'<option value="">Selecione a unidade…</option>':'<option value="">Nenhuma unidade cadastrada</option>')+list.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
   ss.value=S.storeId&&list.some(s=>s.id===S.storeId)?S.storeId:'';
 }
-function checkS1(){$('btn1').disabled=!($('name').value.trim().length>=3&&$('net').value&&$('store').value)}
+function checkS1(){$('btn1').disabled=!($('name').value.trim().length>=3&&$('uf').value&&$('net').value&&$('store').value)}
 
 /* ---------- GPS ---------- */
 function hav(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b);const h=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
@@ -341,11 +352,11 @@ function showPopup(){const n=net();$('popTitle').textContent='Ação na rede '+(
 
 /* ---------- ações ---------- */
 async function next1(){
-  const name=$('name').value.trim();S.name=name;S.netId=$('net').value;S.storeId=$('store').value;
+  const name=$('name').value.trim();S.name=name;S.uf=$('uf').value;S.netId=$('net').value;S.storeId=$('store').value;
   if(!S.visitId){
     const n=net(),st=store(),now=new Date();
     S.visitId='v'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);S.startedAt=now.getTime();
-    w(setDoc(vref(),{promoter:name,networkId:n.id,networkName:n.name,storeId:st.id,storeName:st.name,startedAt:S.startedAt,dateKey:dateKey(now),month:dateKey(now).slice(0,7),status:'andamento',expected:n.flavors||[],missing:[],flags:[],photoHashes:{},photoLive:{},ua:navigator.userAgent.slice(0,160)}));
+    w(setDoc(vref(),{promoter:name,networkId:n.id,networkName:n.name,storeId:st.id,storeName:st.name,uf:(S.uf==='--'?'':S.uf),startedAt:S.startedAt,dateKey:dateKey(now),month:dateKey(now).slice(0,7),status:'andamento',expected:n.flavors||[],missing:[],flags:[],photoHashes:{},photoLive:{},ua:navigator.userAgent.slice(0,160)}));
   }
   save();go(2);
 }
@@ -390,6 +401,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset&&t.dataset.act==='flv'){const f=t.dataset.f;S.missing=S.missing.filter(x=>x!==f);if(t.checked)S.missing.push(f);save();t.closest('.chip').classList.toggle('on',t.checked)}
+  if(t.id==='uf'){S.uf=t.value;S.netId='';S.storeId='';fillNets();fillStores();checkS1()}
   if(t.id==='net'){S.netId=t.value;S.storeId='';fillStores();checkS1()}
   if(t.id==='store'){S.storeId=t.value;checkS1()}
 });
