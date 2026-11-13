@@ -119,7 +119,7 @@ details details>summary{background:#f8f5e8}
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDocs,getDocsFromServer,setDoc,updateDoc,deleteDoc,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const VERSION='v1.2';
+const VERSION='v1.3';
 const PASS='maturi2025';
 const PROXY='https://maturi-ai-proxy.contato-7ed.workers.dev';
 const cfg={apiKey:"AIzaSyCfqBr0MgVhgRi2xhGjtXE_Y7tzeZKlPKQ",authDomain:"maturi-promotoria.firebaseapp.com",projectId:"maturi-promotoria",storageBucket:"maturi-promotoria.firebasestorage.app",messagingSenderId:"931145421913",appId:"1:931145421913:web:66560473caaee307e20d48"};
@@ -355,19 +355,26 @@ function rLojas(){
     <div class="row"><select id="fNet">${netOpts(state.editStore?state.editStore.networkId:nid)}</select><select id="fUF">${ufOpts(state.editStore?state.editStore.uf:state.lojaUF,false)}</select><input id="fName" placeholder="Nome da unidade" value="${esc(state.editStore?state.editStore.name:'')}"></div>
     <div class="row"><input id="fCoord" style="flex:1;min-width:260px" placeholder="Coordenadas do Google Maps — ex.: -25.428412, -49.273251 (ou cole o link do Maps)" value="${state.editStore&&typeof state.editStore.lat==='number'?state.editStore.lat+', '+state.editStore.lng:''}"><label>Raio (m) <input id="fRad" type="number" style="width:80px" value="${state.editStore&&state.editStore.radius?state.editStore.radius:150}"></label></div>
     <p class="muted" style="margin:-4px 0 8px">No Google Maps: clique com o botão direito exatamente na loja e clique nos números que aparecem para copiar.</p>
-    <div class="row"><input id="fAddr" style="flex:1;min-width:240px" placeholder="Endereço (opcional — só para referência)" value="${esc(state.editStore?state.editStore.address||'':'')}"></div>
+    <div class="row"><input id="fAddr" style="flex:1;min-width:240px" placeholder="Endereço (opcional — se vazio, é preenchido pelas coordenadas)" value="${esc(state.editStore?state.editStore.address||'':'')}"></div>
     <div class="row"><button class="btn" data-act="saveStore">${state.editStore?'Salvar alterações':'Adicionar loja'}</button>${state.editStore?'<button class="btn alt" data-act="cancelEdit">Cancelar edição</button>':''}</div>
   </div>
-  <div class="card"><h3>Importar várias lojas</h3><p class="muted" style="margin-bottom:6px">Cole uma loja por linha: <b>REDE;LOJA;UF;LAT,LNG;ENDEREÇO</b> (UF com 2 letras, ex.: PR — pode deixar vazio que o painel descobre pelas coordenadas; endereço é opcional; separador ; ou tabulação — dá para copiar direto do Excel). Linhas sem coordenadas válidas são recusadas. Redes novas são criadas.</p><textarea id="imp" placeholder="CONDOR;Condor Batel;PR;-25.4412, -49.2790;Av. do Batel, 1000"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-act="import">Importar</button><button class="btn alt" data-act="fillUF">🗺️ Preencher estado automaticamente (${state.stores.filter(s=>!s.uf&&typeof s.lat==='number').length} loja(s) sem UF)</button><span id="impMsg" class="muted"></span></div></div>
+  <div class="card"><h3>Importar várias lojas</h3><p class="muted" style="margin-bottom:6px">Cole uma loja por linha: <b>REDE;LOJA;UF;LAT,LNG;ENDEREÇO</b> (UF com 2 letras, ex.: PR — pode deixar vazio, e o endereço também: o painel preenche pelas coordenadas; separador ; ou tabulação — dá para copiar direto do Excel). Linhas sem coordenadas válidas são recusadas. Redes novas são criadas.</p><textarea id="imp" placeholder="CONDOR;Condor Batel;PR;-25.4412, -49.2790;Av. do Batel, 1000"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-act="import">Importar</button><button class="btn alt" data-act="fillUF">🗺️ Preencher estado e endereço automaticamente (${state.stores.filter(s=>(!s.uf||!s.address)&&typeof s.lat==='number').length} loja(s))</button><span id="impMsg" class="muted"></span></div></div>
   <div class="row"><select data-act="lojaNet">${netOpts(nid,true)}</select><select data-act="lojaUF">${ufOpts(state.lojaUF,true)}</select><span class="muted">${list.length} loja(s)</span></div>
   <div class="card tw"><table><thead><tr><th>Rede</th><th>UF</th><th>Loja</th><th>Endereço</th><th>GPS</th><th></th></tr></thead><tbody>${list.map(s=>`<tr><td>${esc(s.networkName)}</td><td>${s.uf?esc(s.uf):'<span class="tag red">sem UF</span>'}</td><td>${esc(s.name)}</td><td class="muted">${esc(s.address||'')}</td><td>${typeof s.lat==='number'?(decs(s.lat)<5||decs(s.lng)<5?'<span class="tag gold">aproximada — confira</span>':'<span class="tag ok">ok</span>')+' <span class="muted">'+(s.radius||250)+' m</span> <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+s.lat+','+s.lng+'">ver no mapa</a>':'<span class="tag red">sem coordenadas</span>'}</td><td><button class="btn alt" data-act="editStore" data-id="${esc(s.id)}">Editar</button> <button class="btn red" data-act="delStore" data-id="${esc(s.id)}">✕</button></td></tr>`).join('')||'<tr><td colspan="6" class="muted">Nenhuma loja.</td></tr>'}</tbody></table></div>`;
 }
 const decs=x=>{const s=String(x);return s.includes('.')?s.split('.')[1].length:0};
-async function ufFromCoord(lat,lng){
-  const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=5&addressdetails=1&lat='+lat+'&lon='+lng,{headers:{'Accept':'application/json'}});
-  const j=await r.json();const iso=(j.address&&j.address['ISO3166-2-lvl4'])||'';
-  const u=iso.startsWith('BR-')?iso.slice(3):'';return UFN[u]?u:'';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function geoInfo(lat,lng){
+  const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=pt-BR&lat='+lat+'&lon='+lng,{headers:{'Accept':'application/json'}});
+  const j=await r.json();const ad=j.address||{};const iso=ad['ISO3166-2-lvl4']||'';
+  const uf=iso.startsWith('BR-')&&UFN[iso.slice(3)]?iso.slice(3):'';
+  const rua=ad.road?ad.road+(ad.house_number?', '+ad.house_number:''):'';
+  const bairro=ad.suburb||ad.neighbourhood||ad.quarter||'';
+  const cid=ad.city||ad.town||ad.village||ad.municipality||'';
+  const address=[rua,bairro,cid&&(cid+(uf?' - '+uf:''))].filter(Boolean).join(', ')||(j.display_name||'');
+  return {uf,address};
 }
+async function ufFromCoord(lat,lng){return (await geoInfo(lat,lng)).uf}
 function parseCoord(s){
   s=String(s||'');let m=s.match(/!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/)||s.match(/(-?\d{1,3}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)/);
   if(!m)return null;const lat=parseFloat(m[1]),lng=parseFloat(m[2]);
@@ -375,12 +382,12 @@ function parseCoord(s){
   return {lat,lng};
 }
 async function saveStore(){
-  let uf=$('fUF').value;const nid=$('fNet').value,name=$('fName').value.trim();if(!nid||!name)return toast('Escolha a rede e informe o nome');
+  let uf=$('fUF').value,addr=$('fAddr').value.trim();const nid=$('fNet').value,name=$('fName').value.trim();if(!nid||!name)return toast('Escolha a rede e informe o nome');
   const n=state.nets.find(x=>x.id===nid);
   const c=parseCoord($('fCoord').value);
   if(!c)return toast('Coordenadas inválidas. Cole no formato -25.428412, -49.273251',4500);
-  if(!uf){toast('Descobrindo o estado pelas coordenadas…',2500);try{uf=await ufFromCoord(c.lat,c.lng)}catch(e){uf=''}if(!uf)return toast('Não consegui descobrir o estado. Escolha manualmente.',4500)}
-  const data={networkId:nid,networkName:n.name,name,uf,address:$('fAddr').value.trim(),radius:parseInt($('fRad').value,10)||150,lat:c.lat,lng:c.lng};
+  if(!uf||!addr){toast('Buscando estado e endereço pelas coordenadas…',2500);try{const g=await geoInfo(c.lat,c.lng);uf=uf||g.uf;addr=addr||g.address}catch(e){}if(!uf)return toast('Não consegui descobrir o estado. Escolha manualmente.',4500)}
+  const data={networkId:nid,networkName:n.name,name,uf,address:addr,radius:parseInt($('fRad').value,10)||150,lat:c.lat,lng:c.lng};
   const id=state.editStore?state.editStore.id:nid+'__'+uf.toLowerCase()+'__'+slug(name);
   try{await setDoc(doc(db,'stores',id),data,{merge:true});state.editStore=null;await load();rLojas();toast('Loja salva ✓')}catch(e){toast('Erro: '+(e.code||e.message),4000)}
 }
@@ -389,24 +396,25 @@ async function importStores(){
   for(const l of lines){
     const p=l.split(/;|\t/).map(x=>x.trim());if(p.length<4||!p[0]||!p[1]){bad++;continue}
     const cc=parseCoord(p[3]);if(!cc){bad++;continue}
-    let uf=(p[2]||'').toUpperCase();
-    if(!uf){try{uf=await ufFromCoord(cc.lat,cc.lng);await new Promise(r=>setTimeout(r,1100))}catch(e){uf=''}}
+    let uf=(p[2]||'').toUpperCase(),addr=p[4]||'';
+    if(!uf||!addr){try{const g=await geoInfo(cc.lat,cc.lng);uf=uf||g.uf;addr=addr||g.address}catch(e){}await sleep(1100)}
     if(!UFN[uf]){bad++;continue}
     const nid=slug(p[0]);
     try{
       if(!state.nets.some(n=>n.id===nid)){await setDoc(doc(db,'networks',nid),{name:p[0].toUpperCase(),flavors:[],popup:'',active:true});state.nets.push({id:nid,name:p[0].toUpperCase()})}
       const n=state.nets.find(x=>x.id===nid);
-      await setDoc(doc(db,'stores',nid+'__'+uf.toLowerCase()+'__'+slug(p[1])),{networkId:nid,networkName:n.name,name:p[1],uf,address:p[4]||'',radius:150,lat:cc.lat,lng:cc.lng},{merge:true});ok++;
+      await setDoc(doc(db,'stores',nid+'__'+uf.toLowerCase()+'__'+slug(p[1])),{networkId:nid,networkName:n.name,name:p[1],uf,address:addr,radius:150,lat:cc.lat,lng:cc.lng},{merge:true});ok++;
     }catch(e){bad++}
   }
   $('impMsg').textContent=ok+' importada(s)'+(bad?', '+bad+' com erro':'');await load();rLojas();
 }
 async function fillUF(){
-  const todo=state.stores.filter(s=>!s.uf&&typeof s.lat==='number');let ok=0;
+  const todo=state.stores.filter(s=>(!s.uf||!s.address)&&typeof s.lat==='number');let ok=0;
   for(let i=0;i<todo.length;i++){
-    toast('Descobrindo estado '+(i+1)+'/'+todo.length+'…',1500);
-    try{const u=await ufFromCoord(todo[i].lat,todo[i].lng);if(u){await updateDoc(doc(db,'stores',todo[i].id),{uf:u});ok++}}catch(e){}
-    await new Promise(r=>setTimeout(r,1100));
+    toast('Buscando '+(i+1)+'/'+todo.length+'…',1500);
+    try{const g=await geoInfo(todo[i].lat,todo[i].lng);const up={};if(!todo[i].uf&&g.uf)up.uf=g.uf;if(!todo[i].address&&g.address)up.address=g.address;
+      if(Object.keys(up).length){await updateDoc(doc(db,'stores',todo[i].id),up);ok++}}catch(e){}
+    await sleep(1100);
   }
   await load();rLojas();toast(ok+' de '+todo.length+' preenchida(s).',4000);
 }
