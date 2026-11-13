@@ -357,8 +357,9 @@ function rLojas(){
   </div>
   <div class="card"><h3>Importar várias lojas</h3><p class="muted" style="margin-bottom:6px">Cole uma loja por linha: <b>REDE;LOJA;ENDEREÇO</b> (separador ; ou tabulação — dá para copiar direto do Excel). Redes novas são criadas.</p><textarea id="imp" placeholder="CONDOR;Condor Batel;Av. do Batel, 1000, Curitiba, PR"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-act="import">Importar</button><button class="btn alt" data-act="geoAll">📍 Buscar coordenadas das lojas sem localização (${noGeo})</button><span id="impMsg" class="muted"></span></div></div>
   <div class="row"><select data-act="lojaNet">${netOpts(nid,true)}</select><span class="muted">${list.length} loja(s)</span></div>
-  <div class="card tw"><table><thead><tr><th>Rede</th><th>Loja</th><th>Endereço</th><th>GPS</th><th></th></tr></thead><tbody>${list.map(s=>`<tr><td>${esc(s.networkName)}</td><td>${esc(s.name)}</td><td class="muted">${esc(s.address||'')}</td><td>${typeof s.lat==='number'?'<span class="tag ok">ok · '+(s.radius||250)+' m</span>':'<span class="tag red">sem coordenadas</span>'}</td><td><button class="btn alt" data-act="editStore" data-id="${esc(s.id)}">Editar</button> <button class="btn red" data-act="delStore" data-id="${esc(s.id)}">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhuma loja.</td></tr>'}</tbody></table></div>`;
+  <div class="card tw"><table><thead><tr><th>Rede</th><th>Loja</th><th>Endereço</th><th>GPS</th><th></th></tr></thead><tbody>${list.map(s=>`<tr><td>${esc(s.networkName)}</td><td>${esc(s.name)}</td><td class="muted">${esc(s.address||'')}</td><td>${typeof s.lat==='number'?(decs(s.lat)<5||decs(s.lng)<5?'<span class="tag gold">aproximada — confira</span>':'<span class="tag ok">ok</span>')+' <span class="muted">'+(s.radius||250)+' m</span> <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+s.lat+','+s.lng+'">ver no mapa</a>':'<span class="tag red">sem coordenadas</span>'}</td><td><button class="btn alt" data-act="editStore" data-id="${esc(s.id)}">Editar</button> <button class="btn red" data-act="delStore" data-id="${esc(s.id)}">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhuma loja.</td></tr>'}</tbody></table></div>`;
 }
+const decs=x=>{const s=String(x);return s.includes('.')?s.split('.')[1].length:0};
 async function geocode(addr){
   const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(addr),{headers:{'Accept':'application/json'}});
   const j=await r.json();if(!j.length)return null;return {lat:+j[0].lat,lng:+j[0].lon};
@@ -367,7 +368,7 @@ async function geoOne(){
   const a=$('fAddr').value.trim();if(!a)return toast('Informe o endereço');
   $('geoMsg').textContent='Buscando…';
   try{const g=await geocode(a);if(!g){$('geoMsg').textContent='Endereço não encontrado — preencha latitude/longitude manualmente (clique com o botão direito no Google Maps para copiar).';return}
-    $('fLat').value=g.lat.toFixed(6);$('fLng').value=g.lng.toFixed(6);$('geoMsg').textContent='Coordenadas encontradas — confira no mapa.'}catch(e){$('geoMsg').textContent='Falha na busca: '+e.message}
+    $('fLat').value=g.lat.toFixed(6);$('fLng').value=g.lng.toFixed(6);$('geoMsg').innerHTML='Coordenadas aproximadas encontradas — <b>confira no mapa</b>: <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+g.lat+','+g.lng+'">abrir no Google Maps</a>. Se o pino não estiver na loja, clique com o botão direito no local certo no Maps, copie os números e cole acima.'}catch(e){$('geoMsg').textContent='Falha na busca: '+e.message}
 }
 async function saveStore(){
   const nid=$('fNet').value,name=$('fName').value.trim();if(!nid||!name)return toast('Escolha a rede e informe o nome');
